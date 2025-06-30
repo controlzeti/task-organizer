@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<title>Task Organizer - Georgian</title>
+<style>
+  body { font-family: sans-serif; padding: 1em; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid #aaa; padding: .5em; text-align: left; }
+  th { background: #eee; }
+  tr[data-priority="მაღალი"] td { background: #fdd; }
+  tr[data-priority="საშუალო"] td { background: #ffd; }
+  tr[data-priority="დაბალი"] td { background: #dfd; }
+  tr[data-priority="დღეს გასაკეთებელი"] td { background: #ddf; }
+  .filter { margin: .5em 0; }
+</style>
+</head>
+<body>
+<h2>დავალებების ორგანიზატორი</h2>
+
+<div class="filter">
+  სტატუსი:
+  <select id="statusFilter"><option value="">ყველა</option>
+    <option value="დასაწყები">დასაწყები</option>
+    <option value="მიმდინარე">მიმდინარე</option>
+    <option value="დასრულებული">დასრულებული</option>
+  </select>
+
+  პრიორიტეტი:
+  <select id="priorityFilter"><option value="">ყველა</option>
+    <option value="დაბალი">დაბალი</option>
+    <option value="საშუალო">საშუალო</option>
+    <option value="მაღალი">მაღალი</option>
+    <option value="დღეს გასაკეთებელი">დღეს გასაკეთებელი</option>
+  </select>
+
+  <button onclick="loadTasks()">ფილტრი</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>დამატება</th><th>დავალება</th><th>სტატუსი</th>
+      <th>პრიორიტეტი</th><th>ვადა</th><th>შენიშვნა</th>
+    </tr>
+  </thead>
+  <tbody id="tasks"></tbody>
+</table>
+
+<h3>ახალი დავალების დამატება</h3>
+<input id="task" placeholder="დავალება" maxlength="100">
+<select id="status"><option>დასაწყები</option><option>მიმდინარე</option><option>დასრულებული</option></select>
+<select id="priority">
+  <option>დაბალი</option><option>საშუალო</option><option>მაღალი</option>
+  <option>დღეს გასაკეთებელი</option>
+</select>
+<input type="date" id="deadline">
+<input id="note" placeholder="შენიშვნა (ვენილის საჩუქარი)">
+<button onclick="submitTask()">დამატება</button>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbyodtG8I5MjsIniEKqeyeHGxM5Gi6RUuX8sAxW2tUjlVQECRlfGPlC2jfw6XaodOH_lQw/exec';
+
+
+function loadTasks() {
+  fetch(API)
+    .then(r => r.json())
+    .then(data => {
+      const sf = document.getElementById('statusFilter').value;
+      const pf = document.getElementById('priorityFilter').value;
+      const tbody = document.getElementById('tasks');
+      tbody.innerHTML = '';
+      data.forEach(t => {
+        if ((sf && t.status !== sf) || (pf && t.priority !== pf)) return;
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-priority', t.priority);
+        tr.innerHTML = `
+          <td>${t.id}</td>
+          <td>${new Date(t.dateAdded).toLocaleString('ka-GE')}</td>
+          <td>${t.task}</td>
+          <td>${t.status}</td>
+          <td>${t.priority}</td>
+          <td>${t.deadline}</td>
+          <td>${t.note||''}</td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+function submitTask() {
+  const task = document.getElementById('task').value;
+  const status = document.getElementById('status').value;
+  const priority = document.getElementById('priority').value;
+  const deadline = document.getElementById('deadline').value;
+  const note = document.getElementById('note').value;
+  if (!task) { alert('შეავსეთ დავალება'); return; }
+  fetch(API, {
+    method: 'POST',
+    body: JSON.stringify({ task, status, priority, deadline, note }),
+    headers: {'Content-Type':'application/json'}
+  })
+  .then(r => r.json())
+  .then(_ => {
+    loadTasks();
+    document.getElementById('task').value = '';
+    document.getElementById('note').value = '';
+    document.getElementById('deadline').value = '';
+  });
+}
+
+loadTasks();
+</script>
+</body>
+</html>
